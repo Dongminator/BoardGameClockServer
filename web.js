@@ -33,5 +33,18 @@ server.listen(port, function() {
 
 
 
+var pg = require('pg');
+pg.connect(process.env.DATABASE_URL, function(err, client) {
+//	var query = client.query('SELECT * FROM boardgameclockserver');
+	var query = client.query('CREATE TABLE lol (date date)');
+	query.on('end', function() { client.end(); });
+
+//	query.on('row', function(row) {
+//		console.log(JSON.stringify(row));
+//	});
+});
+
+
+
 
 
