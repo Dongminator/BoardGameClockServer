@@ -8,13 +8,18 @@ port = process.env.PORT || 3000;
 
 
 app.get('/', function(req, res) {
-	res.send("lol");
+	var sent = "lol";
+	sent = sent + "aa";
 	pg.connect(process.env.DATABASE_URL, function(err, client) {
 		var query = client.query('SELECT * FROM employees');
 		query.on('row', function(row) {
+			sent = sent + JSON.stringify(row);
 			console.log(JSON.stringify(row));
+			res.send(sent);
 		});
 	});
+	
+	
 //  var date = new Date();
 //
 //  client.query('INSERT INTO visits(date) VALUES($1)', [date]);
