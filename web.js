@@ -1,95 +1,89 @@
-var express = require('express')
+var restify = require('restify');
 var pg = require('pg');
+var config = require('./config');
 
-app = express.createServer(express.logger());
+var server = restify.createServer();
 
-
+var connectionString = process.env.DATABASE_URL || "postgres://postgres:12345@localhost:5432/postgres";
 port = process.env.PORT || 3000;
 
+// This line needs to be before post, get, put etc. It is for accessing data in Post/Put
+server.use(restify.bodyParser());
 
-app.get('/', function(req, res) {
-	var sent = "lol";
-	sent = sent + "aa";
-	pg.connect(process.env.DATABASE_URL, function(err, client) {
-		var query = client.query('SELECT * FROM employees');
-		query.on('row', function(row) {
-			sent = sent + JSON.stringify(row);
-			console.log(JSON.stringify(row));
-			res.send(sent);
+//use req.params.id to get :id value
+server.get('/user/:id/:userToken', function serverGet(req, res, next) {
+	console.log("get");
+	pg.connect(connectionString, function(err, client, done) {
+		var handleError = function(err) {
+			if(!err) return false;
+			done(client);
+			next(err);
+			return true;
+		};
+		
+		var query = client.query('SELECT * FROM Users where uid = $1 and token = $2' , [req.params.id], [req.params.userToken], function(err, result){
+			if (result.rowCount) {
+				res.send(result.rows[0]);
+			} else {
+				res.send("400");
+			}
 		});
 	});
-	
-	
-//  var date = new Date();
-//
-//  client.query('INSERT INTO visits(date) VALUES($1)', [date]);
-//
-//  query = client.query('SELECT COUNT(date) AS count FROM visits WHERE date = $1', [date]);
-//  query.on('row', function(result) {
-//    console.log(result);
-//
-//    if (!result) {
-//      return res.send('No data found');
-//    } else {
-//      res.send('Visits today: ' + result.count);
-//    }
-//  });
 });
 
-app.listen(port, function() {
+
+server.post('/hello', function serverPost(req, res, next) {
+	
+	console.log("post:" + req.params.appToken);
+
+	console.log(req.params);
+	res.send(201, Math.random().toString(36).substr(3, 8));
+	return next();
+});
+
+
+server.put('/ft', function serverPut(req, res, next) {
+	console.log("put");
+	var appToken = req.params.appToken;
+	if (appToken !== config.app.token) {
+		res.send(999, "Invalid Token");
+		return next();
+	}
+	
+	var username = req.params.username;
+	var loginMethod = req.params.loginMethod;
+	var userSNID = req.params.socialNetworkID;
+	
+	var userToken = "usertoken";
+	pg.connect(connectionString, function(err, client, done) {
+		var handleError = function(err) {
+			if(!err) return false;
+			done(client);
+			next(err);
+			return true;
+		};
+		// TODO generate userToken
+
+		var query;
+		if (loginMethod === "Facebook") {
+			// TODO find facebook friends
+			
+			query = client.query('INSERT INTO users (username, FacebookID, token) VALUES ($1, $2, $3)' , [username, userSNID, userToken], function (err, result) {
+				res.send(200, userToken);
+			});
+		} else if (loginMethod === "Twitter") {
+			// TODO friends list?
+			
+			query = client.query('INSERT INTO users (username, TwitterID, token) VALUES ($1, $2, $3)', [username, userSNID, userToken], function (err, result) {
+				res.send(200, userToken);
+			});
+		}
+	});
+	return next();
+});
+
+server.listen(port, function() {
   console.log('Listening on:', port);
 });
 
 
-
-
-
-
-
-//var restify = require('restify');
-//
-//var server = restify.createServer({
-//	name: 'Board Game Clock Server'
-//});
-//
-//
-//server.get('/hello/:name', send);
-//server.put('/hello', send);
-//server.post('/hello', function create(req, res, next) {
-//	res.send(201, Math.random().toString(36).substr(3, 8));
-//	return next();
-//});
-//server.del('hello/:name', function rm(req, res, next) {
-//	res.send(204);
-//	return next();
-//});
-//
-//server.head('/hello/:name', send);
-//
-//
-//
-//function send(req, res, next) {
-//	res.send('hello ' + req.params.name);
-//	return next();
-//}
-//	
-//	
-//var port = process.env.PORT || 5000;
-//server.listen(port, function() {
-//	console.log('%s listening at %s', server.name, server.url);
-//});
-//
-//
-//
-//var pg = require('pg');
-//pg.connect(process.env.DATABASE_URL, function(err, client) {
-////	var query = client.query('SELECT * FROM boardgameclockserver');
-//	var query = client.query('CREATE TABLE lol (date date)');
-//	query.on('end', function() { client.end(); });
-//
-////	query.on('row', function(row) {
-////		console.log(JSON.stringify(row));
-////	});
-//});
-//
-//
